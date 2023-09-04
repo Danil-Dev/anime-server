@@ -12,9 +12,9 @@ const AnimeSchema =  new mongoose.Schema({
         ref: "Episodes"
     }],
     image: String,
-    genre: [String],
+    genres: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Genres' }],
+    categories: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Categories' }],
     release_date: Date,
-    categories: [String],
     rating: Number
 })
 
