@@ -9,7 +9,11 @@ const episodeSchema = new mongoose.Schema({
   video: String,
   intro: String,
   end: Number,
-  image_thumb: String
+  image_thumb: String,
+  anime: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Anime",
+  }
 });
 
 module.exports = mongoose.model.Episodes || mongoose.model("Episodes", episodeSchema)
