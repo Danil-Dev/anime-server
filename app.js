@@ -12,6 +12,7 @@ const Episodes = require('./db/EpisodeModel');
 const Categories = require('./db/CategoryModel');
 const Genres = require('./db/GenresModel');
 const Audio = require('./db/AudioModel');
+const Studio = require('./db/StudioModel')
 
 
 
@@ -111,24 +112,47 @@ app.post('/add/anime', async (req, res) => {
             id,
             description,
             image,
-            genre,
+            genres,
             release_date,
             rating,
-            categories
+            categories,
+            studio,
+            audios
         } = req.body;
+
+        const studioObj = await Studio.findOne({id: studio})
+        let studioId = studioObj._id || null
+        if (!studioObj){
+            const newStudio = new Studio({
+                title: studio.charAt(0).toUpperCase() + studio.slice(1),
+                id: studio,
+                link: '#'
+            })
+
+            const savedStudio = await newStudio.save()
+
+            studioId = savedStudio._id
+
+        }
+
         const newAnime = new Anime({
             title,
             id,
             description,
             image,
-            genre,
+            genres,
             release_date,
             rating,
-            categories
+            categories,
+            studio: studioId,
+            audios
+
         });
         if (req.body.episodes) {
             newAnime.episodes = req.body.episodes;
         }
+
+
         const savedAnime = await newAnime.save();
         res.json(savedAnime);
     } catch (err) {
@@ -154,7 +178,7 @@ app.post('/add/:animeId/episode', async (req, res) => {
         if (!anime) {
             return res.status(404).send('Anime not found');
         }
-        const episode = new Episodes({ episode_number, title, date, description, video, intro, end, image_thumb });
+        const episode = new Episodes({ episode_number, title, date, description, video, intro, end, image_thumb, anime: anime._id });
         await episode.save();
         anime.episodes.push(episode._id);
         await anime.save();
@@ -257,14 +281,21 @@ app.post('/get/anime/lists', async (req, res) => {
 // Get Episode
 app.post('/get/episode', async (req, res) => {
     const { animeId, episodeNumber } = req.body;
+
+
+    console.log(animeId, episodeNumber)
     try {
         const anime = await Anime.findOne({
             'id': animeId
         });
+
+        console.log( anime)
         if (!anime) {
             return res.status(404).send({ message: 'Anime with this id not found' });
         }
         const episode = await Episodes.findOne({ 'anime': anime._id, 'episode_number': episodeNumber });
+        console.log(episode)
+        console.log(anime._id, episodeNumber)
         if (!episode) {
             return res.status(404).send({ message: 'Episode with this id not found' });
         }
@@ -414,7 +445,12 @@ app.post('/login', async (req, res) => {
         }
         else{
             bcrypt.compare(req.body.password, user.password).then(isMatch => {
+
+
+                console.log('Compare', isMatch)
                 if (!isMatch) {
+
+                    console.log('Password incorrect')
                     return res.status(400).json({password: 'Password incorrect'})
                 }
                 const token = jwt.sign({
@@ -424,6 +460,9 @@ app.post('/login', async (req, res) => {
                     process.env.KEY,
                     {expiresIn: '2h'}
                 )
+
+
+                console.log('Token', token)
                 res.status(200).json({
                     email: user.email,
                     id: user._id,
@@ -671,6 +710,46 @@ app.post('/add/audio', async (req, res) => {
         res.json(savedAudio);
     } catch (e){
         res.status(500).send({message: e.message});
+    }
+});
+
+app.post('/add/studio', async (req, res) => {
+    const {title, id, link} = req.body
+
+    try {
+        const newStudio = new Studio({
+            title,
+            id,
+            link
+        })
+
+        const savedStudio = await newStudio.save();
+        res.json(savedStudio)
+    } catch (e) {
+        res.status(500).send({message: e.message})
+    }
+})
+
+// Маршрут для получения всех жанров
+app.get('/genres', async (req, res) => {
+    try {
+        const genres = await Genres.find(); // Используйте модель Genres для доступа к коллекции жанров
+
+        console.log(genres)
+        res.json(genres);
+    } catch (error) {
+        res.status(500).send(error);
+    }
+});
+
+app.get('/categories', async (req, res) => {
+    try {
+        const categories = await Categories.find(); // Используйте модель Genres для доступа к коллекции жанров
+
+        console.log(categories)
+        res.json(categories);
+    } catch (error) {
+        res.status(500).send(error);
     }
 });
 

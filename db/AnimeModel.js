@@ -15,7 +15,15 @@ const AnimeSchema =  new mongoose.Schema({
     genres: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Genres' }],
     categories: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Categories' }],
     release_date: Date,
-    rating: Number
+    rating: Number,
+    audios: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Audio"
+    }],
+    studio: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Studio"
+    }
 })
 
 module.exports = mongoose.model['Anime'] || mongoose.model('Anime', AnimeSchema)
