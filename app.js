@@ -90,16 +90,30 @@ app.get('/anime/genre/:genreId', async (req, res) => {
 app.get('/anime/catalog/:item', async (req, res) => {
     try {
         const item = req.params.item;
+
+
+        console.log(item)
         if (item === 'all') {
             const animeList = await Anime.find({}).select('-episodes');
             res.json(animeList);
         } else {
+
+            // Сначала находим ObjectId категории по ее имени
+            const category = await Categories.findOne({ name: item });
+            if (!category) {
+                return res.status(404).send('Category not found');
+            }
             const animeList = await Anime.find({
-                categories: { $in: item }
+                categories: { $in: [category._id] }
             }).select('-episodes');
+
+            console.log(animeList)
             res.json(animeList);
         }
     } catch (err) {
+
+
+        console.log(err)
         res.status(500).send('Server Error');
     }
 });
@@ -121,7 +135,9 @@ app.post('/add/anime', async (req, res) => {
         } = req.body;
 
         const studioObj = await Studio.findOne({id: studio})
-        let studioId = studioObj._id || null
+
+        console.log(studioObj)
+        let studioId = studioObj ? studioObj._id : null
         if (!studioObj){
             const newStudio = new Studio({
                 title: studio.charAt(0).toUpperCase() + studio.slice(1),
@@ -156,6 +172,8 @@ app.post('/add/anime', async (req, res) => {
         const savedAnime = await newAnime.save();
         res.json(savedAnime);
     } catch (err) {
+
+        console.log(err)
         res.status(500).json({ error: err.message });
     }
 });
@@ -320,7 +338,7 @@ app.post('/get/episode', async (req, res) => {
 app.post('/get/anime', async (req, res) => {
     const {animeId, userId} = req.body;
     try{
-        const anime = await Anime.findOne({'id': animeId}).populate('episodes')
+        const anime = await Anime.findOne({'id': animeId}).populate(['episodes','studio', 'audios'])
         if (!anime) {
             return res.status(404).send({message: 'Anime with this id not found'})
         }
@@ -744,10 +762,21 @@ app.get('/genres', async (req, res) => {
 
 app.get('/categories', async (req, res) => {
     try {
-        const categories = await Categories.find(); // Используйте модель Genres для доступа к коллекции жанров
+        const categories = await Categories.find();
 
         console.log(categories)
         res.json(categories);
+    } catch (error) {
+        res.status(500).send(error);
+    }
+});
+
+app.get('/audios', async (req, res) => {
+    try {
+        const audios = await Audio.find();
+
+        console.log(audios)
+        res.json(audios);
     } catch (error) {
         res.status(500).send(error);
     }
