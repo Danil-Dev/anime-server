@@ -76,12 +76,27 @@ app.post('/anime/catalog', async (req, res) => {
 // Get Genre
 app.get('/anime/genre/:genreId', async (req, res) => {
     try {
-        const genre = req.params.genreId;
+
+        const page = parseInt(req.query.page) || 1;
+        const perPage = 2;
+        const skip = (page - 1) * perPage;
+
+
+        const genreId = req.params.genreId;
+
+        const genre = await Genres.findOne({name: genreId})
+        console.log('Genre', genre)
+        if (!genre){
+            return res.status(404).send('Genre not found');
+        }
+
         const animeList = await Anime.find({
-            genre: { $in: genre }
-        }).select('-episodes').limit(10);
+            genres: { $in: genre._id }
+        }).select('-episodes').skip(skip).limit(perPage);
         res.json(animeList);
     } catch (e) {
+
+        console.log(e)
         res.status(500).send('Server Error');
     }
 });
@@ -91,10 +106,13 @@ app.get('/anime/catalog/:item', async (req, res) => {
     try {
         const item = req.params.item;
 
+        const page = parseInt(req.query.page) || 1;
+        const perPage = 2;
+        const skip = (page - 1) * perPage;
 
         console.log(item)
         if (item === 'all') {
-            const animeList = await Anime.find({}).select('-episodes');
+            const animeList = await Anime.find({}).select('-episodes').skip(skip).limit(perPage);
             res.json(animeList);
         } else {
 
@@ -105,9 +123,8 @@ app.get('/anime/catalog/:item', async (req, res) => {
             }
             const animeList = await Anime.find({
                 categories: { $in: [category._id] }
-            }).select('-episodes');
+            }).select('-episodes').skip(skip).limit(perPage);
 
-            console.log(animeList)
             res.json(animeList);
         }
     } catch (err) {
@@ -117,6 +134,30 @@ app.get('/anime/catalog/:item', async (req, res) => {
         res.status(500).send('Server Error');
     }
 });
+
+app.get('/anime/audio/:audioId', async (req, res) => {
+    try{
+        const audioId = req.params.audioId
+
+        const audio = await Audio.findOne({name: audioId})
+
+        if (!audio) {
+            return res.status(404).send('Audio not found');
+        }
+
+        const animeList = await Anime.find({
+            audios: { $in: [audio._id] }
+        }).select('-episodes');
+
+        res.status(200).json(animeList)
+
+        console.log(audioId)
+
+        res.status(200)
+    }catch (e){
+
+    }
+})
 
 // Add Anime
 app.post('/add/anime', async (req, res) => {
@@ -235,7 +276,7 @@ app.get('/anime/:animeId/:userId', async (req, res) => {
 // Get Anime
 app.get('/anime/:animeId', async (req, res) => {
     try {
-        const anime = await Anime.findOne({ 'id': req.params.animeId }).populate('episodes');
+        const anime = await Anime.findOne({ 'id': req.params.animeId })
         if (!anime) {
             return res.status(404).send({ message: 'Anime with this id not found' });
         }
@@ -338,21 +379,28 @@ app.post('/get/episode', async (req, res) => {
 app.post('/get/anime', async (req, res) => {
     const {animeId, userId} = req.body;
     try{
-        const anime = await Anime.findOne({'id': animeId}).populate(['episodes','studio', 'audios'])
+        const anime = await Anime.findOne({'id': animeId}).populate(['studio', 'audios', 'genres']).select('-episodes')
         if (!anime) {
             return res.status(404).send({message: 'Anime with this id not found'})
         }
+
         if(userId){
-            const user =  await Users.findById(userId);
+            const user =  await Users.findById(userId).populate('watchedEpisodes.episodeId');
             const isInWatchlist = user.watchlist.includes(anime._id);
+
+
+
             const lastWatchedEpisode =
                 user.watchedEpisodes.filter((value) => (value.animeId.toString() === anime._id.toString()))
                     .sort((a, b) => b.watchedOn - a.watchedOn)[0]
+
+
+            console.log(lastWatchedEpisode)
             res.status(200).json({
                 ...anime._doc,
                 auth: true,
                 isInWatchlist,
-                lastWatchedEpisode: lastWatchedEpisode?.episodeNumber || 0
+                lastWatchedEpisode: lastWatchedEpisode?.episodeId || null
             })
         }
         else{
@@ -680,7 +728,7 @@ app.post('/remove/user/watchlist', async (req, res) => {
 
 
 
-// Add Category/Genre/Audio
+// Add Category/Genre/Audio/Studio
 app.post('/add/category', async (req, res) => {
 
     const {title, name} = req.body;
