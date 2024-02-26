@@ -623,7 +623,9 @@ app.get('/user/:userId/history', async (req, res) => {
             if (!historyList) {
                 return res.status(404).send({success: false, message: 'User not found'});
             }
-            res.status(200).json({success: true, list: historyList.watchedEpisodes})
+
+            const watchedEpisodesReverse = historyList.watchedEpisodes.reverse();
+            res.status(200).json({success: true, list: watchedEpisodesReverse})
         })
     } catch (e) {
         console.log(e.message)
