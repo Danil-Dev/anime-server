@@ -19,6 +19,7 @@ const Studio = require('./db/StudioModel')
 const path = require('path');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const mongoose = require("mongoose");
 
 // Setup
 app.use(express.json());
@@ -48,7 +49,7 @@ app.get('/search', async (req, res) => {
             title: {
                 $regex: new RegExp(query, 'i') // 'i' makes the search case-insensitive
             }
-        }).select('-episodes');
+        }).populate('genres').select('-episodes');
         res.status(200).json(animeList);
     } catch (err) {
         res.status(500).send('Server error');
@@ -612,23 +613,70 @@ app.get('/user/:userId/history', async (req, res) => {
     try {
         const {userId} = req.params
 
-        Users.findById(userId).populate({
-            path: 'watchedEpisodes.episodeId',
-            select: 'image_thumb _id title duration'
-        }).populate({
-            path: 'watchedEpisodes.animeId',
-            select: 'id title'
-        }).then(historyList => {
-            console.log(historyList)
-            if (!historyList) {
-                return res.status(404).send({success: false, message: 'User not found'});
-            }
+        const page = parseInt(req.query.page) || 1;
+        const perPage = 8;
+        const skip = (page - 1) * perPage;
 
-            const watchedEpisodesReverse = historyList.watchedEpisodes.reverse();
-            res.status(200).json({success: true, list: watchedEpisodesReverse})
-        })
+        // Users.findById(userId).populate({
+        //     path: 'watchedEpisodes.episodeId',
+        //     select: 'image_thumb _id title duration'
+        // }).populate({
+        //     path: 'watchedEpisodes.animeId',
+        //     select: 'id title'
+        // }).then(historyList => {
+        //     console.log(historyList)
+        //     if (!historyList) {
+        //         return res.status(404).send({success: false, message: 'User not found'});
+        //     }
+        //
+        //     const watchedEpisodesReverse = historyList.watchedEpisodes.reverse();
+        //     res.status(200).json({success: true, list: watchedEpisodesReverse})
+        // })
+
+        const historyList = await Users.aggregate([
+            { $match: { _id: new mongoose.Types.ObjectId(userId) } },
+            { $unwind: "$watchedEpisodes" },
+            { $sort: { "watchedEpisodes.watchedOn": -1 } },
+            {
+                $lookup: {
+                    from: "episodes",
+                    localField: "watchedEpisodes.episodeId",
+                    foreignField: "_id",
+                    as: "episodeDetails"
+                }
+            },
+            { $unwind: "$episodeDetails" },
+            // Добавляем lookup для animeId
+            {
+                $lookup: {
+                    from: "animes", // Используйте правильное имя коллекции аниме
+                    localField: "episodeDetails.anime",
+                    foreignField: "_id",
+                    as: "animeDetails"
+                }
+            },
+            { $unwind: "$animeDetails" }, // Разворачиваем, если нужен объект, а не массив
+            { $skip: skip },
+            { $limit: perPage },
+            // // Проектируем только нужные поля
+            {
+                $project: {
+                    watchedEpisodes: {watchedOn: 1, currentTime: 1},
+                    episodeDetails: { title: 1, image_thumb: 1, episode_number: 1},
+                    animeDetails: { id: 1, title: 1 } // Пример проекции полей аниме
+                }
+            },
+        ]);
+
+        if (!historyList.length) {
+            return res.status(200).send([]);
+        }
+
+        console.log(historyList)
+
+        res.json( historyList );
     } catch (e) {
-        console.log(e.message)
+        console.log(e)
         res.status(500).send({success: false, message: e.message});
     }
 })
