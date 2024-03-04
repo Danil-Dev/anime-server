@@ -13,6 +13,7 @@ const Categories = require('./db/CategoryModel');
 const Genres = require('./db/GenresModel');
 const Audio = require('./db/AudioModel');
 const Studio = require('./db/StudioModel')
+const Comment = require('./db/CommentModel')
 
 
 
@@ -281,7 +282,7 @@ app.get('/anime/:animeId', async (req, res) => {
         if (!anime) {
             return res.status(404).send({ message: 'Anime with this id not found' });
         }
-        res.send(anime);
+        res.status(200).send(anime);
     } catch (e) {
         console.log(e.message);
         res.status(500).send({ message: e.message });
@@ -880,4 +881,48 @@ app.get('/audios', async (req, res) => {
     }
 });
 
+app.post('/add/comment', async (req, res) => {
+    try{
+        const { user, commentType, forId, content } = req.body
+
+        console.log(req)
+
+        const comment = new Comment({
+            user,
+            commentType,
+            forId,
+            content
+        })
+
+        const savedComment = await comment.save()
+        res.status(200).json(savedComment)
+    }catch (e){
+        console.log(e)
+        res.status(500).send(e.message)
+    }
+})
+
+// Get comments by Anime or Episode Id
+app.get('/comments/:id', async (req, res) => {
+    try {
+        const forId = req.params.id;
+
+        const page = parseInt(req.query.page) || 1;
+        const perPage = 5;
+        const skip = (page - 1) * perPage;
+
+        const comments = await Comment.find({
+            forId: forId,
+        }).populate({
+            path: 'user',
+            select: '_id email'
+        }).sort({ date: -1 }).skip(skip).limit(perPage);
+
+        res.status(200).json(comments);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 module.exports = app
+
