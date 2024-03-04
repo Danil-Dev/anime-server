@@ -534,6 +534,8 @@ app.post('/login', async (req, res) => {
                 res.status(200).json({
                     email: user.email,
                     id: user._id,
+                    image: user.image,
+                    name: user.name,
                     token: `Bearer ${token}`
                 })
             }).catch(err => {
@@ -915,7 +917,7 @@ app.get('/comments/:id', async (req, res) => {
             forId: forId,
         }).populate({
             path: 'user',
-            select: '_id email'
+            select: '_id name image'
         }).sort({ date: -1 }).skip(skip).limit(perPage);
 
         res.status(200).json(comments);
