@@ -456,6 +456,7 @@ app.post('/auth/register', async (req, res) => {
             const newUser = new Users({
                 email: req.body.email,
                 password: req.body.password,
+                name: req.body.name,
                 isGoogleAuth: false
             })
             bcrypt.genSalt(10, (err, salt) => {
@@ -925,6 +926,53 @@ app.get('/comments/:id', async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 });
+
+// Change Password
+app.post('/user/changePassword', async (req, res) => {
+    const { userId, currentPassword, newPassword } = req.body;
+    const accessToken = req.headers.authorization
+
+    if(!accessToken){
+        return res.status(403).json({message: 'Not allowed'});
+    }
+    let decodedToken;
+    try{
+        decodedToken = jwt.verify(accessToken.split(' ')[1], process.env.KEY);
+    } catch(err) {
+        return res.status(403).json({message: 'Token is invalid or expired'});
+    }
+
+    if(decodedToken.userId !== userId){
+        return res.status(403).json({message: 'Token does not match the userId'});
+    }
+
+
+
+    try{
+        // Transform plaintext pw into hash and compare it with stored password
+        const userDB = await Users.findById(userId);
+
+        if(!userDB) {
+            return res.status(404).json({message: 'User not found'});
+        }
+
+        const isMatchingPassword = await bcrypt.compare(currentPassword, userDB.password);
+
+        if (!isMatchingPassword) {
+            return res.status(400).json({ message: 'Current password is wrong' });
+        }
+
+        // Transform new password into hash and save it
+        const newPasswordHash = await bcrypt.hash(newPassword, 10);
+        userDB.password = newPasswordHash;
+        await userDB.save();
+        return res.status(200).json('Password successfully changed');
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+
+});
+
 
 module.exports = app
 

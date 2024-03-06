@@ -13,8 +13,14 @@ const UserSchema = new mongoose.Schema({
     required: [false, "Please provide a password."],
     unique: false
   },
-  image: String,
-  name: String,
+  image: {
+    type: String,
+    default: 'aaa3baf6-ed64-4e0a-e96f-907bfecfea00'
+  },
+  name: {
+    type: String,
+    unique: [true, 'This name already in use']
+  },
   isGoogleAuth: Boolean,
   watchedEpisodes: [watchedEpisodeSchema],
   watchlist: [{
