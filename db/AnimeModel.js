@@ -16,6 +16,7 @@ const AnimeSchema =  new mongoose.Schema({
     categories: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Categories' }],
     release_date: Date,
     rating: Number,
+    image_banner: String,
     audios: [{
         type: mongoose.Schema.Types.ObjectId,
         ref: "Audio"

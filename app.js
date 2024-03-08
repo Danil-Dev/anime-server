@@ -80,7 +80,7 @@ app.get('/anime/genre/:genreId', async (req, res) => {
     try {
 
         const page = parseInt(req.query.page) || 1;
-        const perPage = 2;
+        const perPage = 8;
         const skip = (page - 1) * perPage;
 
 
@@ -109,7 +109,7 @@ app.get('/anime/catalog/:item', async (req, res) => {
         const item = req.params.item;
 
         const page = parseInt(req.query.page) || 1;
-        const perPage = 2;
+        const perPage = 8;
         const skip = (page - 1) * perPage;
 
         console.log(item)

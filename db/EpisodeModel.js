@@ -13,6 +13,10 @@ const episodeSchema = new mongoose.Schema({
   anime: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Anime",
+  },
+  adding_date: {
+    type: Date,
+    default: Date.now()
   }
 });
 
