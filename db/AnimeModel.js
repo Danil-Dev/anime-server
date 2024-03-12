@@ -24,7 +24,8 @@ const AnimeSchema =  new mongoose.Schema({
     studio: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "Studio"
-    }
+    },
+    anilistId: String
 })
 
 module.exports = mongoose.model['Anime'] || mongoose.model('Anime', AnimeSchema)

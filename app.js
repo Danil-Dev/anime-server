@@ -39,6 +39,27 @@ app.get('/', (req, res) => {
     res.send('Server is working');
 });
 
+app.get('/parse/anime', async (req, res) => {
+    try{
+        const animeList = await Anime.find({}).select('anilistId id -_id')
+
+
+        const enhancedAnimeList = animeList.map((anime) => {
+            return {
+                ...anime.toObject(),
+                link: `https://aniverse.website/anime/${anime.id}`
+            }
+        })
+
+        console.log(enhancedAnimeList)
+
+        res.status(200).json(enhancedAnimeList)
+    } catch (e) {
+        console.log(e)
+        res.status(500).json({ message: 'Server Error'})
+    }
+})
+
 // Search anime
 app.get('/search', async (req, res) => {
     try {
@@ -174,7 +195,8 @@ app.post('/add/anime', async (req, res) => {
             rating,
             categories,
             studio,
-            audios
+            audios,
+            anilistId
         } = req.body;
 
         const studioObj = await Studio.findOne({id: studio})
@@ -204,7 +226,8 @@ app.post('/add/anime', async (req, res) => {
             rating,
             categories,
             studio: studioId,
-            audios
+            audios,
+            anilistId
 
         });
         if (req.body.episodes) {
