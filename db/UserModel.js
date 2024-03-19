@@ -26,7 +26,15 @@ const UserSchema = new mongoose.Schema({
   watchlist: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: "Anime"
-  }]
+  }],
+  resetPasswordToken: {
+    type: String,
+    required: false
+  },
+  resetPasswordExpires: {
+    type: Date,
+    required: false
+  },
 
 })
 

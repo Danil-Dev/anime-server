@@ -1,7 +1,9 @@
 const express = require('express');
 const dbConnect = require('./db/dbConnect');
 const app = express();
-
+const crypto = require('crypto');
+const sgMail = require('@sendgrid/mail')
+sgMail.setApiKey(process.env.SENDGRID_API_KEY)
 // Execute database connection
 dbConnect();
 
@@ -38,6 +40,100 @@ app.use((req, res, next) => {
 app.get('/', (req, res) => {
     res.send('Server is working');
 });
+
+// app.get('/test/send/mail', async (req, res) => {
+//
+//     try{
+//         const msg = {
+//             to: 'aniverse.ukraine@gmail.com', // Change to your recipient
+//             from: 'help@aniverse.com.ua', // Change to your verified sender
+//             subject: 'Sending with SendGrid is Fun',
+//             text: 'and easy to do anywhere, even with Node.js',
+//             html: '<strong>and easy to do anywhere, even with Node.js</strong>',
+//         }
+//
+//         const send = await sgMail.send(msg)
+//
+//         console.log(send)
+//         res.status(200).json(send)
+//     }
+//     catch (e){
+//         console.log(e)
+//         res.status(500).json({message: e.message})
+//     }
+//
+// })
+app.post('/auth/reset-password/request', async (req, res) => {
+    const { email } = req.body
+
+    try{
+
+        // Проверяем, существует ли пользователь с таким email
+        const user = await Users.findOne({ email });
+
+        if (!user) {
+            return res.status(404).json({ message: 'Користувач з таким email не знайдений.' });
+        }
+        const resetPasswordToken = crypto.randomBytes(20).toString('hex')
+        const resetPasswordExpires = Date.now() + 3600000
+
+        await Users.findOneAndUpdate({ email }, {
+            resetPasswordToken,
+            resetPasswordExpires
+        })
+
+        const msg = {
+            to: email, // Change to your recipient
+            from: 'help@aniverse.com.ua', // Change to your verified sender
+            subject: 'Скидання пароля на сайті | Aniverse',
+            text: `Ви отримали цей лист, тому що ви (або хтось інший) запросили скидання пароля для вашого облікового запису.\n\n`+
+            `Будь ласка, перейдіть за наступним посиланням, або скопіюйте його в адресний рядок браузера, щоб завершити процес:\n\n`+
+            `https://aniverse.website/reset-password/reset/${resetPasswordToken}\n\n`+
+            `Якщо ви не запитували скидання пароля, проігноруйте цей лист і ваш пароль залишиться колишнім.\n`,
+            // html: '<strong>and easy to do anywhere, even with Node.js</strong>',
+        }
+
+        const send = await sgMail.send(msg)
+        if (send[0]['statusCode'] === 202){
+            res.status(202).json({message: 'Інструкції зі скидання пароля було надіслано на email.'})
+        }
+        else{
+            res.status(500).json({ message: 'Помилка сервера під час запиту на скидання пароля.'})
+        }
+    }catch (e) {
+        console.log(e)
+        res.status(500).json({ message: e.message})
+    }
+})
+
+app.post('/auth/reset-password/reset', async (req, res) => {
+    const {resetPasswordToken, newPassword} = req.body
+
+    try{
+        const user = await Users.findOne({
+            resetPasswordToken,
+            resetPasswordExpires: { $gt: Date.now() }
+        })
+
+
+        if (!user) {
+            return res.status(400).json({message : 'Токен скидання пароля недійсний або його термін дії закінчився.'})
+        }
+        const hashedPassword = await bcrypt.hash(newPassword, 10)
+
+        await Users.findByIdAndUpdate(user._id, {
+            password: hashedPassword,
+            resetPasswordToken: undefined,
+            resetPasswordExpires: undefined
+        })
+
+        res.status(200).json({ message: 'Пароль успішно скинуто.'})
+
+    }catch (e) {
+        console.log(e)
+        res.status(500).json({ message: e.message})
+    }
+})
 
 app.get('/parse/anime', async (req, res) => {
     try{
