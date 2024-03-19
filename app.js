@@ -88,7 +88,7 @@ app.post('/auth/reset-password/request', async (req, res) => {
             subject: 'Скидання пароля на сайті | Aniverse',
             text: `Ви отримали цей лист, тому що ви (або хтось інший) запросили скидання пароля для вашого облікового запису.\n\n`+
             `Будь ласка, перейдіть за наступним посиланням, або скопіюйте його в адресний рядок браузера, щоб завершити процес:\n\n`+
-            `https://aniverse.website/reset-password/reset/${resetPasswordToken}\n\n`+
+            `https://aniverse.website/auth/reset-password/reset/${resetPasswordToken}\n\n`+
             `Якщо ви не запитували скидання пароля, проігноруйте цей лист і ваш пароль залишиться колишнім.\n`,
             // html: '<strong>and easy to do anywhere, even with Node.js</strong>',
         }
