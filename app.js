@@ -594,6 +594,8 @@ app.post('/auth/register', async (req, res) => {
 
 // Login
 app.post('/login', async (req, res) => {
+
+    console.log('/login')
     Users.findOne({email: req.body.email}).then(user => {
         if (req.body.isGoogleAuth) {
             if (user){
@@ -651,11 +653,21 @@ app.post('/login', async (req, res) => {
 
 
                 console.log('Token', token)
+
+                console.log('USER', {
+                    email: user.email,
+                    id: user._id,
+                    image: user.image,
+                    name: user.name,
+                    status: user.status,
+                    token: `Bearer ${token}`
+                })
                 res.status(200).json({
                     email: user.email,
                     id: user._id,
                     image: user.image,
                     name: user.name,
+                    status: user.status,
                     token: `Bearer ${token}`
                 })
             }).catch(err => {
@@ -795,7 +807,6 @@ app.get('/user/:userId/history', async (req, res) => {
             return res.status(200).send([]);
         }
 
-        console.log(historyList)
 
         res.json( historyList );
     } catch (e) {

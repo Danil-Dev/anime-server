@@ -17,6 +17,10 @@ const UserSchema = new mongoose.Schema({
     type: String,
     default: 'aaa3baf6-ed64-4e0a-e96f-907bfecfea00'
   },
+  status: {
+    type: String,
+    default: 'user'
+  },
   name: {
     type: String,
     unique: [true, 'This name already in use']
