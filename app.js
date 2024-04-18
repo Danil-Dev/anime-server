@@ -2,6 +2,7 @@ const express = require('express');
 const dbConnect = require('./db/dbConnect');
 const app = express();
 const crypto = require('crypto');
+const axios = require('axios');
 const sgMail = require('@sendgrid/mail')
 sgMail.setApiKey(process.env.SENDGRID_API_KEY)
 // Execute database connection
@@ -24,6 +25,9 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const mongoose = require("mongoose");
 
+const telegramBotToken = '6825069010:AAHHmvJIeteqx04P5XMOtV94NFEwPYkxoxo';
+const chatId = '-1002038055327';
+
 // Setup
 app.use(express.json());
 app.use('/static', express.static(path.join(__dirname, 'public')));
@@ -41,28 +45,6 @@ app.get('/', (req, res) => {
     res.send('Server is working');
 });
 
-// app.get('/test/send/mail', async (req, res) => {
-//
-//     try{
-//         const msg = {
-//             to: 'aniverse.ukraine@gmail.com', // Change to your recipient
-//             from: 'help@aniverse.com.ua', // Change to your verified sender
-//             subject: 'Sending with SendGrid is Fun',
-//             text: 'and easy to do anywhere, even with Node.js',
-//             html: '<strong>and easy to do anywhere, even with Node.js</strong>',
-//         }
-//
-//         const send = await sgMail.send(msg)
-//
-//         console.log(send)
-//         res.status(200).json(send)
-//     }
-//     catch (e){
-//         console.log(e)
-//         res.status(500).json({message: e.message})
-//     }
-//
-// })
 app.post('/auth/reset-password/request', async (req, res) => {
     const { email } = req.body
 
@@ -1101,6 +1083,31 @@ app.post('/user/changePassword', async (req, res) => {
         res.status(500).json({ error: e.message });
     }
 
+});
+
+app.post('/send-error-report', async (req, res) => {
+    const { error_type, description, link } = req.body;
+
+    // Формируем текст сообщения
+    const message = `
+<b>Error Type:</b> ${error_type}
+<b>Description:</b> ${description}
+<b>Link:</b> ${link}
+    `.trim();
+
+    try {
+        // Отправляем данные в Telegram
+        await axios.post(`https://api.telegram.org/bot${telegramBotToken}/sendMessage`, {
+            chat_id: chatId,
+            text: message,
+            parse_mode: 'HTML'
+        });
+
+        res.status(202).send({ message: 'Report sent successfully' });
+    } catch (error) {
+        console.error('Error sending message to Telegram', error);
+        res.status(500).send({ message: 'Error sending report' });
+    }
 });
 
 
