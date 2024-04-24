@@ -17,6 +17,7 @@ const Genres = require('./db/GenresModel');
 const Audio = require('./db/AudioModel');
 const Studio = require('./db/StudioModel')
 const Comment = require('./db/CommentModel')
+const Collecton = require('./db/CollectionModel');
 
 
 
@@ -24,6 +25,7 @@ const path = require('path');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const mongoose = require("mongoose");
+
 
 const telegramBotToken = '6825069010:AAHHmvJIeteqx04P5XMOtV94NFEwPYkxoxo';
 const chatId = '-1002038055327';
@@ -1109,6 +1111,44 @@ app.post('/send-error-report', async (req, res) => {
         res.status(500).send({ message: 'Error sending report' });
     }
 });
+
+app.post('/add/collection', async (req, res) => {
+    const {title} = req.body;
+    try{
+        const newCollection = new Collecton({title})
+
+        await newCollection.save();
+        res.status(200).json(newCollection);
+    } catch (e) {
+        res.status(400).send({ message: e.message });
+    }
+
+})
+
+app.get('/collection/:animeId', async (req, res) => {
+
+    const animeId = req.params.animeId;
+
+    try{
+        const collections = await Collecton.find({animeIds: animeId})
+            .populate({
+                path: 'animeIds',
+                match: { _id: { $ne: new mongoose.Types.ObjectId(animeId) }},
+                select: 'id title image release_date',
+                options: { sort: { date: 1 } },
+            });
+
+        if (!collections){
+            return res.status(404).json({message: 'Collections not found'});
+        }
+
+        console.log(collections)
+
+        res.status(200).json(collections);
+    } catch (e) {
+        res.status(500).send({ message: e.message });
+    }
+})
 
 
 module.exports = app
